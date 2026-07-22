@@ -68,17 +68,16 @@ DEVCONSUI_MoveCodeCamp2026_Level1/
 │   ├── tailwind.config.js
 │   └── vite.config.ts
 │
-└── sui-balance-to-coin-tool/       # Optional helper (only if gas coin errors)
-    ├── README.md
-    ├── package.json
-    └── scripts/
-        └── balanceToCoin.js
+├── sui-balance-to-coin-tool/   # Gas-coin helper (used in Step 5, self-contained)
+│   ├── README.md
+│   ├── package.json
+│   └── scripts/
+│       └── balanceToCoin.js
+│
+├── .gitignore
+├── package.json
+└── README.md
 ```
-
-> The `sui-balance-to-coin-tool` folder is a **fallback helper**. You only need
-> it if `sui client publish` or `sui client call` fails with a
-> "Cannot find gas coin for signer address..." error even though
-> `sui client balance` shows you have SUI. See its own `README.md` for details.
 
 ---
 
@@ -213,6 +212,8 @@ After setup, the terminal will show a **Secret Recovery Phrase** and a **Wallet 
 
 > ⚠️ **Save both in Notepad immediately.** Your recovery phrase cannot be recovered if lost.
 
+> 💡 The key you create here is a plain **ed25519** key (that's what option `0` means). Remember this — the gas-coin step in Step 5 uses this same ed25519 key.
+
 ---
 
 ## Step 4 — Fork and Clone the Repository
@@ -295,6 +296,47 @@ sui client balance
 
 Wait until it shows at least **0.05 SUI** before continuing.
 
+### Prepare Your Gas Coin
+
+Since the Sui **v1.72 mainnet upgrade (May 2026)**, SUI sent from a wallet arrives in your **address balance** — a per-address balance, not a classic coin object. `sui client balance` shows it correctly, but the CLI needs an actual `Coin<SUI>` **object** to pay gas with. So before publishing, everyone converts a small slice of that balance into a spendable coin.
+
+First, look at what you have:
+
+```powershell
+sui client balance   # total SUI you received
+sui client gas        # coin objects available for gas (likely empty right now)
+```
+
+If `sui client gas` shows no coin objects, create one:
+
+1. From the repo root, go into the tool folder:
+   ```powershell
+   cd sui-balance-to-coin-tool
+   ```
+
+2. Install its dependencies (first time only):
+   ```powershell
+   npm install
+   ```
+
+3. Convert 0.05 SUI into a coin object:
+   ```powershell
+   npm run balance:to-coin:minimal -- 50000000
+   ```
+   > `50000000` is the amount in **MIST** (1 SUI = 1,000,000,000 MIST). 0.05 SUI comfortably covers a publish plus the portfolio call in Step 6 — pass a smaller number like `20000000` (0.02 SUI) if you only want the minimum.
+
+4. Confirm it worked. You should see `Status: success` and a `New coin object created: 0x...` line, then:
+   ```powershell
+   sui client gas   # a coin object should now be listed
+   ```
+
+5. Return to the repo root before continuing:
+   ```powershell
+   cd ..
+   ```
+
+> 🔒 **Safe by design.** This tool only reads the keystore the `sui` CLI already created (you never paste a private key), and it only moves SUI from your address balance back to **your own** address as a coin object. Full details in the [Appendix](#appendix--the-balance-to-coin-tool).
+
 ### Build the Smart Contract
 
 Navigate to the contract folder:
@@ -341,6 +383,8 @@ PackageID: 0xabc123...
 > 🖥️ **Run all commands in this step in the VS Code terminal.**
 
 This step puts your personal information onto the blockchain as a Sui object.
+
+> ⛽ **Gas coin running low?** `sui client call` pays gas from a coin object too, just like publishing. If `sui client gas` looks empty, repeat the **Prepare Your Gas Coin** step from Step 5 (`cd sui-balance-to-coin-tool` → `npm run balance:to-coin:minimal -- 50000000`), then continue.
 
 ### Add Your Profile Photo
 
@@ -566,6 +610,7 @@ https://github.com/ldcasilang/sui_portfolio_level2
 |---|---|
 | Official Sui Install Guide | https://docs.sui.io/guides/developer/getting-started/sui-install |
 | Sui Testnet Faucet | https://faucet.sui.io/ |
+| Address Balances (SIP-58) | https://github.com/sui-foundation/sips/blob/main/sips/sip-58.md |
 | GitHub | https://github.com |
 | Vercel | https://vercel.com |
 | Sample Repository | https://github.com/ldcasilang/DEVCONSUI_MoveCodeCamp2026_Level1 |
@@ -583,8 +628,10 @@ All commands below are run in the **VS Code terminal** (except Step 1 which uses
 | Check Git version | `git --version` |
 | View wallet addresses | `sui client addresses` |
 | Get active wallet address | `sui client active-address` |
-| Check SUI balance | `sui client balance` |
+| Check SUI balance (total) | `sui client balance` |
+| List gas coin objects | `sui client gas` |
 | Switch to mainnet | `sui client switch --env mainnet` |
+| Prepare a gas coin (from address balance) | `npm run balance:to-coin:minimal -- 50000000` |
 | Build smart contract | `sui move build` |
 | Publish smart contract | `sui client publish` |
 | Clear Move cache | `Remove-Item -Recurse -Force "$env:USERPROFILE\.move"` |
@@ -609,8 +656,14 @@ All commands below are run in the **VS Code terminal** (except Step 1 which uses
 **Build error about `.move` cache**  
 → Run `Remove-Item -Recurse -Force "$env:USERPROFILE\.move"` then build again.
 
+**`Cannot find gas coin for signer address...`**  
+→ Your SUI is in an address balance, not a coin object. Complete (or repeat) the **Prepare Your Gas Coin** step in Step 5: `cd sui-balance-to-coin-tool`, then `npm run balance:to-coin:minimal -- 50000000`, confirm with `sui client gas`, and retry.
+
+**`No usable ed25519 keys found...` when running the balance-to-coin tool**  
+→ Complete Step 3 (`sui client addresses`) first, and make sure you chose key scheme `0` (ed25519). If your keystore lives in a non-default location, set `SUI_KEYSTORE_PATH`.
+
 **`npm install` fails**  
-→ Make sure you are inside the `portfolio_frontend` folder. If you were in `portfolio_contract`, run `cd ../portfolio_frontend` first.
+→ Make sure you are inside the correct folder. For the frontend, `cd portfolio_frontend` first. For the gas-coin tool, `cd sui-balance-to-coin-tool` first.
 
 **PowerShell says "unexpected token" on the `sui client call` command**  
 → Make sure there is no trailing space after each backtick `` ` ``. It must be the very last character on the line.
@@ -624,5 +677,58 @@ All commands below are run in the **VS Code terminal** (except Step 1 which uses
 **`sui client publish` fails with "already published" or a `Published.toml` error**  
 → A `Published.toml` file was left over from a previous attempt. In VS Code Explorer, find and delete `portfolio_contract/Published.toml`, then run `sui client publish` again.
 
-**`sui client publish` / `sui client call` fails with "Cannot find gas coin for signer address..." even though `sui client balance` shows I have SUI**  
-→ Your SUI is sitting in the newer "address balance" instead of a spendable coin object. Use the helper tool in the `sui-balance-to-coin-tool` folder to convert a small amount into a coin object, then retry. Follow the steps in `sui-balance-to-coin-tool/README.md`.
+---
+
+## Appendix — The Balance-to-Coin Tool
+
+`sui-balance-to-coin-tool/` is a small, self-contained helper used in **Step 5** to create a spendable gas coin. Since Sui's **v1.72 mainnet upgrade (May 2026)**, SUI sent from a wallet arrives in your **address balance** rather than as a `Coin<SUI>` object, and the CLI needs a coin object to pay gas — this tool bridges that gap. You don't need to read this section to use it.
+
+### What it does
+
+It builds one small transaction that:
+
+1. Withdraws the amount you specify from your **address balance** (`tx.withdrawal({ amount, type: '0x2::sui::SUI' })`).
+2. Redeems that withdrawal into a real `Coin<SUI>` object using the standard Sui framework function `0x2::coin::redeem_funds`.
+3. Sends that coin straight back to your own address, so it appears under `sui client gas` and the CLI can use it to pay gas.
+
+It signs using the ed25519 key already stored in your Sui CLI keystore, and talks to the fullnode over **gRPC** (the forward-compatible API — Sui's public JSON-RPC endpoints are being retired in 2026).
+
+### Usage
+
+Run these from inside the tool folder:
+
+```powershell
+cd sui-balance-to-coin-tool
+npm install                                  # first time only
+npm run balance:to-coin:minimal -- <amount_in_mist>
+```
+
+`<amount_in_mist>` is in MIST. **1 SUI = 1,000,000,000 MIST.**
+
+| You want as a coin | MIST to pass |
+|---|---|
+| 0.02 SUI | `20000000` |
+| 0.05 SUI | `50000000` |
+| 0.1 SUI | `100000000` |
+
+### Optional environment variables
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SUI_NETWORK` | `mainnet`, `testnet`, or `devnet` | `mainnet` (correct for this camp) |
+| `SUI_ADDRESS` | Pick a specific address if your keystore has several | first ed25519 key |
+| `SUI_KEYSTORE_PATH` | Point at a keystore in a non-default location | see below |
+
+Default keystore location:
+
+- **Windows:** `C:\Users\<you>\.sui\sui_config\sui.keystore`
+- **macOS / Linux:** `~/.sui/sui_config/sui.keystore`
+
+The keystore is read from an absolute path, so it doesn't matter which folder you run the tool from — but `npm install` and `npm run` must be executed **inside** `sui-balance-to-coin-tool/`, since that's where its dependencies live.
+
+### Assumptions & safety
+
+- Assumes the **default ed25519** key scheme (option `0` in Step 3). secp256k1 / secp256r1 keys are skipped.
+- Defaults to **mainnet**, which matches where this workshop deploys. Only set `SUI_NETWORK=testnet` if you deliberately deployed to testnet.
+- It **never** asks for or stores your private key anywhere new — it only reads the keystore file the `sui` CLI itself created.
+- It only moves SUI from your address balance back to **your own** address. It never sends funds to anyone else.

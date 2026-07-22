@@ -1,60 +1,60 @@
 # Sui Balance-to-Coin Tool
 
 Converts SUI sitting in your Sui **address balance** (introduced by the May 2026
-v1.72 upgrade) into a real, spendable `Coin<SUI>` object — fixing the
-"Cannot find gas coin for signer address..." error.
+v1.72 upgrade) into a real, spendable `Coin<SUI>` object — so `sui client
+publish` / `sui client call` can find a gas coin.
 
-## Do I need this tool?
-
-**Most workshop attendees will NOT need this.** Only use it if BOTH of these are true:
-
-1. `sui client balance` shows you have SUI (for example, 0.05 SUI or more), **but**
-2. `sui client publish` (Step 5) or `sui client call` (Step 6) fails with an error
-   like **"Cannot find gas coin for signer address..."**
-
-If your publish/call commands work normally, you can ignore this folder entirely.
+> **You run this as part of Step 5** of the main workshop guide
+> (see the repo's `README.md` → "Prepare Your Gas Coin"). This file is just a
+> quick reference for the tool itself.
 
 ## Why this exists
 
 Since v1.72, SUI can sit in two places: classic coin objects, or the newer
-"address balance." Wallets like Slush increasingly send funds via the
+"address balance." Wallets and mentor transfers increasingly send funds via the
 address-balance path. `sui client balance` shows both combined, but
-`sui client publish` / `sui client call` need an actual coin object to pay
-gas with — so the balance looks fine while gas payment still fails. This tool
-moves a small amount out of the address balance and into a coin object so gas
-payment works again.
+`sui client publish` / `sui client call` need an actual coin object to pay gas
+with — so the balance looks fine while gas payment still fails with
+"Cannot find gas coin for signer address...". This tool moves a small amount out
+of the address balance and into a coin object so gas payment works.
 
 ## Setup
 
-1. This folder (`sui-balance-to-coin-tool/`) sits next to `portfolio_contract`
-   and `portfolio_frontend` inside your project. You can also copy it anywhere
-   else on your machine if you prefer.
-2. In the **VS Code terminal**, go into this folder:
+1. This folder (`sui-balance-to-coin-tool/`) ships inside the workshop repo,
+   next to `portfolio_contract` and `portfolio_frontend`.
+2. In the **VS Code terminal**, from the repo root, go into this folder:
    ```powershell
    cd sui-balance-to-coin-tool
    ```
-3. Install its dependencies:
+3. Install its dependencies (first time only):
    ```powershell
    npm install
    ```
-4. Make sure you have already run `sui client addresses` at some point (from
-   the workshop setup in Step 3) — this tool reads the same keystore file that
-   command created, so there is nothing extra to configure for your key.
+4. Make sure you have already run `sui client addresses` (workshop Step 3) —
+   this tool reads the same keystore file that command created, so there is
+   nothing extra to configure for your key.
 
 ## Usage
 
-Run this from inside the `sui-balance-to-coin-tool` folder. Replace the number
-with the amount you want to convert, in **MIST** (1 SUI = 1,000,000,000 MIST):
+Run this from inside the `sui-balance-to-coin-tool` folder. The number is the
+amount to convert, in **MIST** (1 SUI = 1,000,000,000 MIST):
 
 ```powershell
 npm run balance:to-coin:minimal -- <amount_in_mist>
 ```
 
-Example — convert 0.02 SUI (20,000,000 MIST), which is plenty for gas:
+Default for the workshop — convert 0.05 SUI, which comfortably covers the
+publish (Step 5) plus the portfolio call (Step 6):
 
 ```powershell
-npm run balance:to-coin:minimal -- 20000000
+npm run balance:to-coin:minimal -- 50000000
 ```
+
+| You want as a coin | MIST to pass |
+|---|---|
+| 0.02 SUI (minimum) | `20000000`  |
+| 0.05 SUI (default) | `50000000`  |
+| 0.1 SUI            | `100000000` |
 
 Then confirm it worked:
 
@@ -62,9 +62,9 @@ Then confirm it worked:
 sui client gas
 ```
 
-You should now see a coin object listed. Once it appears, go back to the main
-workshop guide and re-run the command that was failing (`sui client publish` in
-Step 5, or `sui client call` in Step 6).
+You should now see a coin object listed. Go back to the main workshop guide and
+run the command that needed it (`sui client publish` in Step 5, or
+`sui client call` in Step 6).
 
 ## Notes / assumptions
 
@@ -78,5 +78,6 @@ Step 5, or `sui client call` in Step 6).
   before running so it picks the right key.
 - Defaults to mainnet (the network this workshop deploys to). Set
   `SUI_NETWORK=testnet` (or `devnet`) if needed.
-- This never asks for or stores your private key anywhere new — it only
-  reads the keystore file the `sui` CLI itself already created.
+- This never asks for or stores your private key anywhere new — it only reads
+  the keystore file the `sui` CLI itself already created, and only moves SUI
+  back to **your own** address.
