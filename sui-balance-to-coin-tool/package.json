@@ -1,0 +1,11 @@
+{
+  "name": "sui-balance-to-coin-tool",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "balance:to-coin:minimal": "node scripts/balanceToCoin.js"
+  },
+  "dependencies": {
+    "@mysten/sui": "^2.20.3"
+  }
+}

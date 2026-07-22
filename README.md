@@ -48,26 +48,37 @@ DEVCONSUI_MoveCodeCamp2026_Level1/
 │   └── sources/
 │       └── portfolio.move      # Main Move contract
 │
-└── portfolio_frontend/         # React frontend
-    ├── public/
-    │   ├── profile.png         # Your profile photo (replace this)
-    │   ├── sui-logo.png
-    │   ├── devcon.png
-    │   └── sui.svg
-    │
-    ├── src/
-    │   ├── App.tsx
-    │   ├── App.css
-    │   ├── main.tsx
-    │   ├── constants.ts        # Update MAINNET_PORTFOLIO_ID here
-    │   └── views/
-    │       └── PortfolioView.tsx
-    │
-    ├── index.html
+├── portfolio_frontend/         # React frontend
+│   ├── public/
+│   │   ├── profile.png         # Your profile photo (replace this)
+│   │   ├── sui-logo.png
+│   │   ├── devcon.png
+│   │   └── sui.svg
+│   │
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── App.css
+│   │   ├── main.tsx
+│   │   ├── constants.ts        # Update MAINNET_PORTFOLIO_ID here
+│   │   └── views/
+│   │       └── PortfolioView.tsx
+│   │
+│   ├── index.html
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── vite.config.ts
+│
+└── sui-balance-to-coin-tool/       # Optional helper (only if gas coin errors)
+    ├── README.md
     ├── package.json
-    ├── tailwind.config.js
-    └── vite.config.ts
+    └── scripts/
+        └── balanceToCoin.js
 ```
+
+> The `sui-balance-to-coin-tool` folder is a **fallback helper**. You only need
+> it if `sui client publish` or `sui client call` fails with a
+> "Cannot find gas coin for signer address..." error even though
+> `sui client balance` shows you have SUI. See its own `README.md` for details.
 
 ---
 
@@ -612,3 +623,6 @@ All commands below are run in the **VS Code terminal** (except Step 1 which uses
 
 **`sui client publish` fails with "already published" or a `Published.toml` error**  
 → A `Published.toml` file was left over from a previous attempt. In VS Code Explorer, find and delete `portfolio_contract/Published.toml`, then run `sui client publish` again.
+
+**`sui client publish` / `sui client call` fails with "Cannot find gas coin for signer address..." even though `sui client balance` shows I have SUI**  
+→ Your SUI is sitting in the newer "address balance" instead of a spendable coin object. Use the helper tool in the `sui-balance-to-coin-tool` folder to convert a small amount into a coin object, then retry. Follow the steps in `sui-balance-to-coin-tool/README.md`.
